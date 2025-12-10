@@ -1,0 +1,33 @@
+{
+  "name": "pwa-table-extractor",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "onnxruntime-web": "^1.15.0",
+    "paddleocr": "^2.6.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "@vitejs/plugin-react": "^4.0.0"
+  },
+  "description": "",
+  "main": "vite.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/u-Shiyuh/calendar-scheduler.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/u-Shiyuh/calendar-scheduler/issues"
+  },
+  "homepage": "https://github.com/u-Shiyuh/calendar-scheduler#readme"
+}

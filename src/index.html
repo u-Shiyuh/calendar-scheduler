@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Table Extractor PWA</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  body { font-family: sans-serif; padding: 1rem; }
+  button { margin: 0.5rem 0; }
+  pre { background: #f0f0f0; padding: 1rem; max-height: 300px; overflow: auto; }
+</style>
+</head>
+<body>
+
+<h1>Table Extractor PWA</h1>
+<input type="file" accept="image/*" capture="environment" id="imageInput">
+<button id="processBtn">Process Image</button>
+<button id="downloadBtn">Download CSV</button>
+<pre id="output"></pre>
+
+<!-- PaddleOCR Web via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/paddleocr-web/dist/paddleocr.min.js"></script>
+
+<script>
+window.onload = () => {
+  const inputEl = document.getElementById('imageInput');
+  const outputEl = document.getElementById('output');
+  let selectedFile;
+
+  inputEl.addEventListener('change', e => selectedFile = e.target.files[0]);
+
+  async function runOCR(file) {
+    const ocr = new PaddleOCR({ lang: 'en' });
+    outputEl.textContent = "Loading OCR engine...";
+    await ocr.load(); // initialize the model
+    outputEl.textContent = "Processing image...";
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await ocr.recognize(new Uint8Array(arrayBuffer));
+    return result; // [{text, bbox}, ...]
+  }
+
+  function reconstructTable(cells) {
+    const sorted = cells.sort((a,b) => a.bbox[1]-b.bbox[1]);
+    const rows = [];
+    let currentY = -1, row = [];
+    sorted.forEach(cell => {
+      if(currentY === -1 || Math.abs(cell.bbox[1]-currentY) < 10){
+        row.push(cell);
+      } else {
+        rows.push(row.sort((a,b)=>a.bbox[0]-b.bbox[0]));
+        row = [cell];
+      }
+      currentY = cell.bbox[1];
+    });
+    if(row.length) rows.push(row.sort((a,b)=>a.bbox[0]-b.bbox[0]));
+    return rows.map(r => r.map(c=>c.text));
+  }
+
+  function downloadCSV(data){
+    const csv = data.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'table.csv';
+    a.click();
+  }
+
+  document.getElementById('processBtn').addEventListener('click', async () => {
+    if(!selectedFile) return alert("Select an image first");
+    try {
+      const ocrResult = await runOCR(selectedFile);
+      const table = reconstructTable(ocrResult);
+      outputEl.textContent = JSON.stringify(table, null, 2);
+    } catch (err) {
+      outputEl.textContent = "Error: " + err.message;
+      console.error(err);
+    }
+  });
+
+  document.getElementById('downloadBtn').addEventListener('click', () => {
+    const text = outputEl.textContent;
+    if(!text) return alert("No table to download");
+    downloadCSV(JSON.parse(text));
+  });
+
+  // Offline service worker
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('serviceWorker.js').catch(console.log);
+  }
+};
+</script>
+</body>
+</html>
